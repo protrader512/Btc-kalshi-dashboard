@@ -3,146 +3,257 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#0b0f14">
-<title>BTC 15M Trade Assistant</title>
+<meta name="theme-color" content="#071018">
+<title>BTC 15M PRO</title>
 
 <style>
+:root{
+--bg:#071018;
+--card:#101923;
+--line:#22313f;
+--text:#f4f7fb;
+--muted:#91a0af;
+--good:#45d483;
+--bad:#ff6875;
+--warn:#ffc857;
+--blue:#72a7ff
+}
+
 *{box-sizing:border-box}
 
 body{
-  margin:0;
-  background:#0b0f14;
-  color:#f4f7fb;
-  font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif
+margin:0;
+background:var(--bg);
+color:var(--text);
+font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif
 }
 
-.wrap{
-  max-width:720px;
-  margin:auto;
-  padding:18px
+.app{
+max-width:760px;
+margin:auto;
+padding:14px
 }
 
-.top{
-  padding:10px 0 18px
+header{
+padding:8px 2px 14px
 }
 
-.title{
-  font-size:27px;
-  font-weight:800
+.brand{
+font-size:25px;
+font-weight:900
 }
 
-.sub{
-  color:#9ba7b5;
-  font-size:14px;
-  margin-top:4px
+.tag,.sub{
+color:var(--muted);
+font-size:12px
 }
 
 .card{
-  background:#131922;
-  border:1px solid #273140;
-  border-radius:16px;
-  padding:15px;
-  margin-bottom:12px
+background:var(--card);
+border:1px solid var(--line);
+border-radius:17px;
+padding:14px;
+margin-bottom:11px
+}
+
+.timer{
+display:flex;
+justify-content:space-between;
+align-items:center
+}
+
+.timer .value{
+font-size:34px;
+font-weight:900
+}
+
+.pill{
+padding:6px 9px;
+border-radius:999px;
+background:#0c151e;
+border:1px solid var(--line);
+font-size:11px;
+color:var(--muted)
 }
 
 .grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:12px
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:10px
 }
 
 label{
-  display:block;
-  color:#9ba7b5;
-  font-size:13px;
-  margin-bottom:7px
+font-size:11px;
+color:var(--muted);
+display:block;
+margin-bottom:5px
 }
 
 input{
-  width:100%;
-  padding:13px;
-  border-radius:11px;
-  border:1px solid #273140;
-  background:#0e141c;
-  color:#f4f7fb;
-  font-size:17px;
-  outline:none
-}
-
-input:focus{
-  border-color:#6ea8fe
+width:100%;
+background:#0c151e;
+border:1px solid var(--line);
+color:var(--text);
+border-radius:10px;
+padding:12px;
+font-size:16px
 }
 
 button{
-  width:100%;
-  padding:14px;
-  border:0;
-  border-radius:12px;
-  background:#6ea8fe;
-  color:#07101c;
-  font-weight:800;
-  font-size:16px
+border:0;
+border-radius:11px;
+padding:12px 14px;
+font-weight:850;
+font-size:15px;
+background:var(--blue);
+color:#071018;
+width:100%
+}
+
+.btn2{
+background:#0c151e;
+border:1px solid var(--line);
+color:var(--text)
 }
 
 .decision{
-  font-size:30px;
-  font-weight:900;
-  text-align:center;
-  padding:12px
+text-align:center;
+font-size:39px;
+font-weight:950
 }
+
+.good{color:var(--good)}
+.bad{color:var(--bad)}
+.warnc{color:var(--warn)}
 
 .center{text-align:center}
 
-.muted{color:#9ba7b5}
+.metrics{
+display:grid;
+grid-template-columns:1fr 1fr 1fr;
+gap:8px;
+margin-top:10px
+}
 
-.big{
-  font-size:24px;
-  font-weight:800
+.metric{
+background:#0c151e;
+border:1px solid var(--line);
+border-radius:12px;
+padding:10px
+}
+
+.metric b{
+display:block;
+font-size:20px;
+margin-top:3px
+}
+
+.metric span{
+font-size:10px;
+color:var(--muted)
 }
 
 .row{
-  display:flex;
-  justify-content:space-between;
-  gap:12px;
-  padding:9px 0;
-  border-bottom:1px solid #273140
+display:flex;
+justify-content:space-between;
+padding:9px 0;
+border-bottom:1px solid var(--line);
+font-size:13px
 }
 
 .row:last-child{
-  border:0
+border:0
 }
 
-.warn{
-  font-size:12px;
-  color:#cbd3dc;
-  line-height:1.45
+.bar{
+height:10px;
+background:#0c151e;
+border-radius:99px;
+overflow:hidden;
+border:1px solid var(--line);
+margin:9px 0
 }
 
-.foot{
-  color:#7f8a98;
-  font-size:11px;
-  line-height:1.45;
-  padding:4px
+.fill{
+height:100%;
+width:50%;
+background:var(--blue);
+transition:.25s
+}
+
+.actions{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:9px
+}
+
+.small{
+font-size:11px;
+color:var(--muted);
+line-height:1.45
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+font-size:11px
+}
+
+td,th{
+text-align:left;
+padding:7px 4px;
+border-bottom:1px solid var(--line)
+}
+
+th{
+color:var(--muted)
+}
+
+.install{
+background:#0c151e;
+border:1px solid var(--line);
+border-radius:12px;
+padding:10px;
+font-size:12px
 }
 
 @media(max-width:520px){
-  .grid{
-    grid-template-columns:1fr
-  }
+.grid{
+grid-template-columns:1fr
+}
+
+.timer .value{
+font-size:31px
+}
 }
 </style>
 </head>
 
 <body>
 
-<div class="wrap">
+<div class="app">
 
-<div class="top">
-<div class="title">₿ BTC 15M Trade Assistant</div>
-<div class="sub">
-Decision support for 15-minute BTC contracts.
+<header>
+<div class="brand">₿ BTC 15M PRO</div>
+<div class="tag">15-minute contract decision dashboard</div>
+</header>
+
+
+<div class="card">
+
+<div class="timer">
+
+<div>
+<div class="sub">TIME REMAINING</div>
+<div id="clock" class="value">15:00</div>
 </div>
+
+<div class="pill">MANUAL MODE</div>
+
 </div>
+
+</div>
+
 
 <div class="card">
 
@@ -150,315 +261,38 @@ Decision support for 15-minute BTC contracts.
 
 <div>
 <label>Current BTC price ($)</label>
-<input id="btc" type="number" step="0.01" placeholder="110000">
+<input id="btc" type="number" step=".01">
 </div>
 
 <div>
 <label>Contract target ($)</label>
-<input id="target" type="number" step="0.01" placeholder="110100">
+<input id="target" type="number" step=".01">
 </div>
 
 <div>
 <label>UP price (¢)</label>
-<input id="up" type="number" min="1" max="99" step="1" placeholder="55">
+<input id="up" type="number" min="1" max="99">
 </div>
 
 <div>
 <label>DOWN price (¢)</label>
-<input id="down" type="number" min="1" max="99" step="1" placeholder="45">
+<input id="down" type="number" min="1" max="99">
 </div>
 
 <div>
 <label>Minutes remaining</label>
-<input id="mins" type="number" min="0" step="0.1" placeholder="7">
+<input id="mins" type="number" min="0" max="15" step=".1">
 </div>
 
 <div>
-<label>BTC volatility %/hour</label>
-<input id="vol" type="number" min="0.1" step="0.1" value="3">
+<label>Volatility % / hour</label>
+<input id="vol" type="number" min=".1" step=".1" value="3">
 </div>
 
+<div>
+<label>Bankroll ($)</label>
+<input id="bank" type="number" min="0" step="1">
 </div>
 
-<br>
-
-<button onclick="calculate()">ANALYZE CONTRACT</button>
-
-</div>
-
-<div id="output" class="card" style="display:none">
-
-<div id="decision" class="decision">WAIT</div>
-
-<div class="center muted" id="reason"></div>
-
-<br>
-
-<div class="row">
-<span>Estimated UP probability</span>
-<b id="pup">—</b>
-</div>
-
-<div class="row">
-<span>Estimated DOWN probability</span>
-<b id="pdown">—</b>
-</div>
-
-<div class="row">
-<span>UP market price</span>
-<b id="upm">—</b>
-</div>
-
-<div class="row">
-<span>UP maximum fair price</span>
-<b id="upfair">—</b>
-</div>
-
-<div class="row">
-<span>DOWN market price</span>
-<b id="downm">—</b>
-</div>
-
-<div class="row">
-<span>DOWN maximum fair price</span>
-<b id="downfair">—</b>
-</div>
-
-<div class="row">
-<span>Best estimated edge</span>
-<b id="edge">—</b>
-</div>
-
-</div>
-
-<div class="card">
-
-<div class="big">Model information</div>
-
-<p class="warn">
-This calculator estimates the probability of BTC finishing above or below
-the contract target at expiration using the current BTC price, remaining
-time and an assumed hourly volatility.
-
-It is a mathematical decision-support model, not a guarantee of the result.
-BTC can move suddenly, and the actual contract settlement rules, fees,
-spread and market liquidity can affect the outcome.
-</p>
-
-</div>
-
-<div class="foot">
-Educational decision-support tool. It does not connect to your Kalshi
-account or place trades automatically.
-</div>
-
-</div>
-
-<script>
-
-function normCDF(x){
-
-const a1=0.254829592;
-const a2=-0.284496736;
-const a3=1.421413741;
-const a4=-1.453152027;
-const a5=1.061405429;
-const p=0.3275911;
-
-const sign=x<0?-1:1;
-
-x=Math.abs(x)/Math.sqrt(2);
-
-const t=1/(1+p*x);
-
-const y=1-
-(
-(
-(
-(
-a5*t+a4
-)*t+a3
-)*t+a2
-)*t+a1
-)*t*Math.exp(-x*x);
-
-return 0.5*(1+sign*y);
-
-}
-
-
-function fmtPct(x){
-
-return (x*100).toFixed(1)+"%";
-
-}
-
-
-function calculate(){
-
-const btc=
-+document.getElementById("btc").value;
-
-const target=
-+document.getElementById("target").value;
-
-const up=
-+document.getElementById("up").value;
-
-const down=
-+document.getElementById("down").value;
-
-const mins=
-+document.getElementById("mins").value;
-
-const volH=
-+document.getElementById("vol").value;
-
-
-if(
-!(btc>0 &&
-target>0 &&
-up>0 &&
-down>0 &&
-mins>=0 &&
-volH>0)
-||
-up>=100 ||
-down>=100
-){
-
-alert("Enter valid values in every field.");
-
-return;
-
-}
-
-
-const t=Math.max(mins/60,0.000001);
-
-const sigma=volH/100;
-
-const mu=-0.5*sigma*sigma;
-
-
-/*
-Estimate probability BTC finishes above
-the contract target at expiration.
-*/
-
-const z=
-(
-Math.log(target/btc)-mu*t
-)/
-(
-sigma*Math.sqrt(t)
-);
-
-
-const pup=
-Math.max(
-0,
-Math.min(
-1,
-1-normCDF(z)
-)
-);
-
-
-const pdown=1-pup;
-
-
-const upFair=pup*100;
-
-const downFair=pdown*100;
-
-
-const upEdge=upFair-up;
-
-const downEdge=downFair-down;
-
-
-let decision="WAIT";
-
-let reason="No sufficient pricing edge.";
-
-
-/*
-Require at least a 3-cent estimated
-edge before generating a signal.
-*/
-
-const threshold=3;
-
-
-if(
-upEdge>=threshold &&
-upEdge>downEdge
-){
-
-decision="BUY UP";
-
-reason=
-"UP appears underpriced versus the model.";
-
-}
-
-else if(
-downEdge>=threshold &&
-downEdge>upEdge
-){
-
-decision="BUY DOWN";
-
-reason=
-"DOWN appears underpriced versus the model.";
-
-}
-
-
-document.getElementById("output")
-.style.display="block";
-
-
-document.getElementById("decision")
-.textContent=decision;
-
-
-document.getElementById("reason")
-.textContent=reason;
-
-
-document.getElementById("pup")
-.textContent=fmtPct(pup);
-
-
-document.getElementById("pdown")
-.textContent=fmtPct(pdown);
-
-
-document.getElementById("upm")
-.textContent=up.toFixed(0)+"¢";
-
-
-document.getElementById("upfair")
-.textContent=upFair.toFixed(1)+"¢";
-
-
-document.getElementById("downm")
-.textContent=down.toFixed(0)+"¢";
-
-
-document.getElementById("downfair")
-.textContent=downFair.toFixed(1)+"¢";
-
-
-document.getElementById("edge")
-.textContent=
-Math.max(upEdge,downEdge).toFixed(1)+"¢";
-
-}
-
-</script>
-
-</body>
-</html>
+<div>
+<label>Max risk per trade
