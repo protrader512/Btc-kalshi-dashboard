@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#071018">
 <title>BTC 15M PRO</title>
 
@@ -21,11 +21,18 @@
 
 *{box-sizing:border-box}
 
+html{
+min-height:100%;
+overflow-y:auto
+}
+
 body{
 margin:0;
+min-height:100vh;
 background:var(--bg);
 color:var(--text);
-font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif
+font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+padding-bottom:90px
 }
 
 .app{
@@ -102,12 +109,20 @@ font-size:16px
 button{
 border:0;
 border-radius:11px;
-padding:12px 14px;
+padding:14px;
 font-weight:850;
-font-size:15px;
+font-size:16px;
 background:var(--blue);
 color:#071018;
 width:100%
+}
+
+.sticky{
+position:sticky;
+bottom:8px;
+z-index:5;
+padding-top:8px;
+background:linear-gradient(transparent,var(--card) 25%)
 }
 
 .btn2{
@@ -126,7 +141,9 @@ font-weight:950
 .bad{color:var(--bad)}
 .warnc{color:var(--warn)}
 
-.center{text-align:center}
+.center{
+text-align:center
+}
 
 .metrics{
 display:grid;
@@ -177,8 +194,7 @@ margin:9px 0
 .fill{
 height:100%;
 width:50%;
-background:var(--blue);
-transition:.25s
+background:var(--blue)
 }
 
 .actions{
@@ -218,6 +234,7 @@ font-size:12px
 }
 
 @media(max-width:520px){
+
 .grid{
 grid-template-columns:1fr
 }
@@ -225,6 +242,7 @@ grid-template-columns:1fr
 .timer .value{
 font-size:31px
 }
+
 }
 </style>
 </head>
@@ -295,4 +313,650 @@ font-size:31px
 </div>
 
 <div>
-<label>Max risk per trade
+<label>Max risk per trade (%)</label>
+<input id="risk" type="number" min=".1" max="10" step=".1" value="2">
+</div>
+
+</div>
+
+
+<div class="sticky">
+
+<button onclick="analyze()">
+ANALYZE NOW
+</button>
+
+</div>
+
+</div>
+
+
+<div id="results" style="display:none">
+
+
+<div class="card">
+
+<div id="decision" class="decision warnc">
+WAIT
+</div>
+
+<div id="reason" class="center sub"></div>
+
+
+<div class="metrics">
+
+<div class="metric">
+<span>UP PROB.</span>
+<b id="pup">—</b>
+</div>
+
+<div class="metric">
+<span>DOWN PROB.</span>
+<b id="pdown">—</b>
+</div>
+
+<div class="metric">
+<span>EDGE</span>
+<b id="edge">—</b>
+</div>
+
+</div>
+
+
+<div class="bar">
+<div id="probbar" class="fill"></div>
+</div>
+
+</div>
+
+
+<div class="card">
+
+<div class="row">
+<span>BTC vs target</span>
+<b id="distance">—</b>
+</div>
+
+<div class="row">
+<span>UP market / model fair</span>
+<b id="upfair">—</b>
+</div>
+
+<div class="row">
+<span>DOWN market / model fair</span>
+<b id="downfair">—</b>
+</div>
+
+<div class="row">
+<span>Suggested max UP price</span>
+<b id="upmax">—</b>
+</div>
+
+<div class="row">
+<span>Suggested max DOWN price</span>
+<b id="downmax">—</b>
+</div>
+
+<div class="row">
+<span>Risk budget</span>
+<b id="riskbudget">—</b>
+</div>
+
+<div class="row">
+<span>Model position size</span>
+<b id="size">—</b>
+</div>
+
+</div>
+
+
+<div class="card">
+
+<div class="sub">SIGNAL</div>
+
+<div id="signal"
+style="font-size:23px;font-weight:900">
+—
+</div>
+
+<p class="small">
+Signals require a minimum estimated edge.
+They are not guarantees.
+</p>
+
+</div>
+
+
+<div class="card">
+
+<div class="actions">
+
+<button onclick="saveTrade()">
+SAVE TRADE
+</button>
+
+<button class="btn2" onclick="clearJournal()">
+CLEAR JOURNAL
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+<div class="card">
+
+<div class="sub">TRADE JOURNAL</div>
+
+<div id="journal" class="small">
+No saved trades yet.
+</div>
+
+</div>
+
+
+<div class="install">
+
+<b>Home screen:</b>
+
+Chrome → ⋮ → <b>Add to Home screen</b>.
+
+</div>
+
+
+<div class="card">
+
+<div class="sub">IMPORTANT</div>
+
+<p class="small">
+
+Decision-support only.
+
+This version does not connect to Kalshi or place orders.
+
+The probability engine is a baseline mathematical approximation
+and should be backtested.
+
+Fees, spreads, liquidity, settlement rules and data latency matter.
+
+</p>
+
+</div>
+
+</div>
+
+
+<script>
+
+function cdf(x){
+
+const a1=.254829592;
+const a2=-.284496736;
+const a3=1.421413741;
+const a4=-1.453152027;
+const a5=1.061405429;
+const p=.3275911;
+
+const s=x<0?-1:1;
+
+x=Math.abs(x)/Math.sqrt(2);
+
+const t=1/(1+p*x);
+
+const y=
+1-
+(
+(
+(
+(
+a5*t+a4
+)*t+a3
+)*t+a2
+)*t+a1
+)
+*t*Math.exp(-x*x);
+
+return .5*(1+s*y);
+
+}
+
+
+function v(id){
+
+return +document.getElementById(id).value;
+
+}
+
+
+function set(id,x){
+
+document.getElementById(id).textContent=x;
+
+}
+
+
+function money(x){
+
+return "$"+
+Number(x).toLocaleString(
+undefined,
+{maximumFractionDigits:0}
+);
+
+}
+
+
+let last=null;
+
+
+function analyze(){
+
+const btc=v("btc");
+const target=v("target");
+const up=v("up");
+const down=v("down");
+const mins=v("mins");
+const vol=v("vol");
+const bank=v("bank");
+const risk=v("risk");
+
+
+if(
+!(
+btc>0 &&
+target>0 &&
+up>0 &&
+down>0 &&
+mins>=0 &&
+vol>0
+)
+||
+up>=100 ||
+down>=100
+){
+
+alert("Please enter valid values.");
+
+return;
+
+}
+
+
+const t=Math.max(
+mins/60,
+.000001
+);
+
+const sigma=vol/100;
+
+const mu=-.5*sigma*sigma;
+
+
+const z=
+(
+Math.log(target/btc)-mu*t
+)/
+(
+sigma*Math.sqrt(t)
+);
+
+
+const pup=
+Math.max(
+0,
+Math.min(
+1,
+1-cdf(z)
+)
+);
+
+
+const pdown=1-pup;
+
+const uf=pup*100;
+const df=pdown*100;
+
+const ue=uf-up;
+const de=df-down;
+
+
+let dec="WAIT";
+
+let reason="No sufficient edge.";
+
+let sig="NO TRADE";
+
+
+const threshold=3;
+
+
+if(
+ue>=threshold &&
+ue>de
+){
+
+dec="BUY UP";
+
+reason=
+"UP is underpriced versus the baseline model.";
+
+sig=
+ue>=8
+?
+"STRONG UP"
+:
+"GOOD UP";
+
+}
+
+
+else if(
+de>=threshold &&
+de>ue
+){
+
+dec="BUY DOWN";
+
+reason=
+"DOWN is underpriced versus the baseline model.";
+
+sig=
+de>=8
+?
+"STRONG DOWN"
+:
+"GOOD DOWN";
+
+}
+
+
+const rb=
+bank>0
+?
+bank*risk/100
+:
+0;
+
+
+const chosen=
+dec==="BUY UP"
+?
+up
+:
+dec==="BUY DOWN"
+?
+down
+:
+0;
+
+
+const contracts=
+chosen
+?
+Math.floor(
+rb/(chosen/100)
+)
+:
+0;
+
+
+last={
+time:new Date().toLocaleString(),
+dec,
+btc,
+target,
+up,
+down,
+mins,
+pup,
+pdown,
+edge:Math.max(ue,de)
+};
+
+
+document.getElementById(
+"results"
+).style.display="block";
+
+
+set("decision",dec);
+
+set("reason",reason);
+
+set(
+"pup",
+(pup*100).toFixed(1)+"%"
+);
+
+set(
+"pdown",
+(pdown*100).toFixed(1)+"%"
+);
+
+set(
+"edge",
+Math.max(ue,de).toFixed(1)+"¢"
+);
+
+
+set(
+"distance",
+(btc>=target?"+":"-")+
+money(Math.abs(btc-target))
+);
+
+
+set(
+"upfair",
+up+"¢ / "+
+uf.toFixed(1)+"¢"
+);
+
+
+set(
+"downfair",
+down+"¢ / "+
+df.toFixed(1)+"¢"
+);
+
+
+set(
+"upmax",
+Math.max(0,uf-1).toFixed(1)+"¢"
+);
+
+
+set(
+"downmax",
+Math.max(0,df-1).toFixed(1)+"¢"
+);
+
+
+set(
+"riskbudget",
+money(rb)
+);
+
+
+set(
+"size",
+contracts
+?
+contracts+" contracts"
+:
+"—"
+);
+
+
+set("signal",sig);
+
+
+document.getElementById(
+"probbar"
+).style.width=
+(
+(dec==="BUY DOWN"?pdown:pup)*100
+)+"%";
+
+
+document.getElementById(
+"decision"
+).className=
+"decision "+
+(
+dec==="WAIT"
+?
+"warnc"
+:
+dec==="BUY UP"
+?
+"good"
+:
+"bad"
+);
+
+}
+
+
+function tick(){
+
+const m=v("mins");
+
+if(
+isFinite(m) &&
+m>=0
+){
+
+const s=Math.max(
+0,
+Math.round(m*60)
+);
+
+set(
+"clock",
+String(Math.floor(s/60))
+.padStart(2,"0")
++
+":"+
+String(s%60)
+.padStart(2,"0")
+);
+
+}
+
+}
+
+
+setInterval(
+tick,
+500
+);
+
+
+function saveTrade(){
+
+if(!last){
+
+alert(
+"Analyze a contract first."
+);
+
+return;
+
+}
+
+
+let a=
+JSON.parse(
+localStorage.getItem("btcJournal") ||
+"[]"
+);
+
+
+a.unshift(last);
+
+
+localStorage.setItem(
+"btcJournal",
+JSON.stringify(
+a.slice(0,20)
+)
+);
+
+
+renderJournal();
+
+alert("Trade saved.");
+
+}
+
+
+function clearJournal(){
+
+localStorage.removeItem(
+"btcJournal"
+);
+
+renderJournal();
+
+}
+
+
+function renderJournal(){
+
+let a=
+JSON.parse(
+localStorage.getItem("btcJournal") ||
+"[]"
+);
+
+
+if(!a.length){
+
+set(
+"journal",
+"No saved trades yet."
+);
+
+return;
+
+}
+
+
+document.getElementById(
+"journal"
+).innerHTML=
+
+"<table>"+
+"<tr>"+
+"<th>Time</th>"+
+"<th>Signal</th>"+
+"<th>BTC</th>"+
+"<th>Target</th>"+
+"<th>Edge</th>"+
+"</tr>"+
+a.map(
+x=>
+"<tr>"+
+"<td>"+x.time+"</td>"+
+"<td>"+x.dec+"</td>"+
+"<td>"+money(x.btc)+"</td>"+
+"<td>"+money(x.target)+"</td>"+
+"<td>"+x.edge.toFixed(1)+"¢</td>"+
+"</tr>"
+).join("")
++
+"</table>";
+
+}
+
+
+renderJournal();
+tick();
+
+</script>
+
+</body>
+</html>
