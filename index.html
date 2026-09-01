@@ -1,104 +1,199 @@
-from pathlib import Path
-import zipfile, textwrap
-
-html = r'''<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>BTC Kalshi Decision Engine</title>
+
 <style>
-*{box-sizing:border-box}body{margin:0;background:#070b12;color:#e8eef7;font:14px system-ui,-apple-system,Segoe UI,sans-serif}
-.wrap{max-width:1100px;margin:auto;padding:18px}.top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
-h1{font-size:20px;margin:0}.sub{color:#7f8da3;font-size:12px;margin-top:4px}.pill{border:1px solid #1f9d63;color:#45e09a;border-radius:20px;padding:7px 11px;font-size:11px}
-.grid{display:grid;grid-template-columns:1.4fr 1fr;gap:14px}.card{background:#0d131d;border:1px solid #1b2635;border-radius:14px;padding:16px;box-shadow:0 8px 30px #0004}
-.hero{grid-column:1/-1}.label{color:#8290a5;font-size:11px;text-transform:uppercase;letter-spacing:.08em}.big{font-size:34px;font-weight:750;margin:4px 0}.green{color:#42dd91}.red{color:#ff6677}.muted{color:#8290a5}.row{display:flex;justify-content:space-between;align-items:center;gap:12px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:14px}.stat{background:#111a26;border-radius:10px;padding:11px}.stat b{display:block;font-size:17px;margin-top:3px}.decision{font-size:29px;font-weight:800;margin:8px 0}.bar{height:8px;background:#182333;border-radius:8px;overflow:hidden}.fill{height:100%;width:61%;background:#39d98a}.odds{display:grid;grid-template-columns:1fr 1fr;gap:10px}.odd{padding:14px;border-radius:11px;background:#111a26}.odd b{font-size:25px}.chart{height:180px;width:100%;display:block}.footer{margin-top:14px;color:#6f7d91;font-size:10px;line-height:1.5}
-button{background:#152234;color:#dce8f6;border:1px solid #26364b;border-radius:8px;padding:8px 11px;cursor:pointer}button:hover{background:#1b2d44}
-@media(max-width:700px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}.hero{grid-column:auto}}
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  background:#070b12;
+  color:#e8eef7;
+  font:14px system-ui,-apple-system,Segoe UI,sans-serif
+}
+
+.wrap{
+  max-width:1100px;
+  margin:auto;
+  padding:18px
+}
+
+.top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom:18px
+}
+
+h1{font-size:20px;margin:0}
+
+.sub{
+  color:#7f8da3;
+  font-size:12px;
+  margin-top:4px
+}
+
+.pill{
+  border:1px solid #1f9d63;
+  color:#45e09a;
+  border-radius:20px;
+  padding:7px 11px;
+  font-size:11px
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:1.4fr 1fr;
+  gap:14px
+}
+
+.card{
+  background:#0d131d;
+  border:1px solid #1b2635;
+  border-radius:14px;
+  padding:16px;
+  box-shadow:0 8px 30px #0004
+}
+
+.hero{grid-column:1/-1}
+
+.label{
+  color:#8290a5;
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.08em
+}
+
+.muted{color:#8290a5}
+
+.row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px
+}
+
+.stats{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:9px;
+  margin-top:14px
+}
+
+.stat{
+  background:#111a26;
+  border-radius:10px;
+  padding:11px
+}
+
+.stat b{
+  display:block;
+  font-size:17px;
+  margin-top:3px
+}
+
+.decision{
+  font-size:29px;
+  font-weight:800;
+  margin:8px 0
+}
+
+.bar{
+  height:8px;
+  background:#182333;
+  border-radius:8px;
+  overflow:hidden
+}
+
+.fill{
+  height:100%;
+  width:0%;
+  background:#39d98a
+}
+
+.odds{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px
+}
+
+.odd{
+  padding:14px;
+  border-radius:11px;
+  background:#111a26
+}
+
+.odd b{font-size:25px}
+
+.chart{
+  height:180px;
+  width:100%;
+  display:block
+}
+
+button{
+  background:#152234;
+  color:#dce8f6;
+  border:1px solid #26364b;
+  border-radius:8px;
+  padding:8px 11px;
+  cursor:pointer
+}
+
+button:hover{background:#1b2d44}
+
+.footer{
+  margin-top:14px;
+  color:#6f7d91;
+  font-size:10px;
+  line-height:1.5
+}
+
+@media(max-width:700px){
+  .grid{grid-template-columns:1fr}
+  .stats{grid-template-columns:1fr 1fr}
+  .hero{grid-column:auto}
+}
 </style>
 </head>
+
 <body>
+
 <div class="wrap">
-  <div class="top">
-    <div><h1>LIVE Kalshi + BTC Decision Engine</h1><div class="sub">BTC 15-minute Up/Down dashboard</div></div>
-    <div class="pill" id="status">BTC FEED CONNECTING</div>
+
+<div class="top">
+  <div>
+    <h1>LIVE Kalshi + BTC Decision Engine</h1>
+    <div class="sub">BTC 15-minute Up/Down dashboard</div>
   </div>
-  <div class="grid">
-    <section class="card hero">
-      <div class="row"><div><div class="label">Current contract</div><b>BTC 15 MIN — UP OR DOWN</b></div><div class="muted" id="clock">--:--</div></div>
-      <div class="stats">
-        <div class="stat"><span class="muted">BTC</span><b id="btc">—</b><span id="chg" class="muted">—</span></div>
-        <div class="stat"><span class="muted">Target</span><b>$78,900</b><span class="muted">reference</span></div>
-        <div class="stat"><span class="muted">UP / YES</span><b id="up">52.0¢</b><span class="muted">market odds</span></div>
-        <div class="stat"><span class="muted">DOWN / NO</span><b id="down">48.0¢</b><span class="muted">market odds</span></div>
-      </div>
-    </section>
 
-    <section class="card">
-      <div class="label">Model decision</div>
-      <div class="decision" id="decision">WAIT</div>
-      <div class="row"><span class="muted">Confidence</span><b id="confidence">—</b></div>
-      <div class="bar" style="margin-top:8px"><div class="fill" id="fill"></div></div>
-      <div class="row" style="margin-top:12px"><span class="muted">Max buy price</span><b id="max">54.0¢</b></div>
-    </section>
-
-    <section class="card">
-      <div class="label">Live BTC price</div>
-      <canvas id="chart" class="chart"></canvas>
-      <div class="row"><span class="muted">Updated</span><span id="updated">—</span></div>
-    </section>
-
-    <section class="card">
-      <div class="label">Market odds</div>
-      <div class="odds" style="margin-top:10px">
-        <div class="odd"><span class="muted">UP</span><br><b id="up2">52%</b></div>
-        <div class="odd"><span class="muted">DOWN</span><br><b id="down2">48%</b></div>
-      </div>
-    </section>
-
-    <section class="card">
-      <div class="label">Connection</div>
-      <p id="connection" class="muted">Loading live BTC data…</p>
-      <button onclick="refresh()">Refresh now</button>
-    </section>
-  </div>
-  <div class="footer">Market-data dashboard only. No trade is placed automatically. Kalshi order execution is intentionally not enabled in this browser-only version. Verify contract terms, prices and settlement before trading.</div>
+  <div class="pill" id="status">CONNECTING</div>
 </div>
-<script>
-const prices=[];
-async function refresh(){
-  try{
-    const r=await fetch('https://api.coinbase.com/v2/prices/BTC-USD/spot',{cache:'no-store'});
-    if(!r.ok) throw Error();
-    const j=await r.json(), p=Number(j.data.amount);
-    prices.push(p); if(prices.length>60) prices.shift();
-    document.getElementById('btc').textContent='$'+p.toLocaleString(undefined,{maximumFractionDigits:2});
-    document.getElementById('status').textContent='BTC FEED LIVE';
-    document.getElementById('status').style.color='#45e09a';
-    document.getElementById('connection').textContent='Live BTC spot feed connected. Kalshi order execution is not enabled in this browser-only build.';
-    document.getElementById('updated').textContent=new Date().toLocaleTimeString();
-    draw();
-  }catch(e){
-    document.getElementById('status').textContent='BTC FEED ERROR';
-    document.getElementById('status').style.color='#ff6677';
-    document.getElementById('connection').textContent='BTC feed could not be reached. Check your connection and tap Refresh.';
-  }
-}
-function draw(){
- const c=document.getElementById('chart'),x=c.getContext('2d'),d=devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight;
- c.width=w*d;c.height=h*d;x.scale(d,d);x.clearRect(0,0,w,h);if(prices.length<2)return;
- let mn=Math.min(...prices),mx=Math.max(...prices),pad=(mx-mn)||1;
- x.beginPath();prices.forEach((v,i)=>{let X=i*(w/(prices.length-1)),Y=h-8-((v-mn)/pad)*(h-18);i?x.lineTo(X,Y):x.moveTo(X,Y)});x.strokeStyle='#42dd91';x.lineWidth=2;x.stroke();
-}
-function tick(){let n=new Date(),s=15*60-(Math.floor(n.getTime()/1000)%(15*60));document.getElementById('clock').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
-refresh();tick();setInterval(refresh,15000);setInterval(tick,1000);addEventListener('resize',draw);
-</script>
-</body></html>'''
 
-root=Path("/mnt/data/Btc-kalshi-dashboard")
-root.mkdir(exist_ok=True)
-(root/"index.html").write_text(html, encoding="utf-8")
-zip_path=Path("/mnt/data/Btc-kalshi-dashboard-ready.zip")
-with zipfile.ZipFile(zip_path,"w",zipfile.ZIP_DEFLATED) as z:
-    z.write(root/"index.html","index.html")
-print(f"Created: {zip_path}")
+
+<div class="grid">
+
+<section class="card hero">
+
+<div class="row">
+
+<div>
+<div class="label">Current contract</div>
+<b id="contract">Finding live BTC contract...</b>
+</div>
+
+<div class="muted" id="clock">--:--</div>
+
+</div>
+
+
+<div class="stats">
+
+<div class="stat">
+<span class="muted">BTC</span>
+<b id="btc">—</b>
+<span
