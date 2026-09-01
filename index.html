@@ -196,4 +196,607 @@ button:hover{background:#1b2d44}
 <div class="stat">
 <span class="muted">BTC</span>
 <b id="btc">—</b>
-<span
+<span class="muted">live spot</span>
+</div>
+
+<div class="stat">
+<span class="muted">Target</span>
+<b id="target">—</b>
+<span class="muted">contract strike</span>
+</div>
+
+<div class="stat">
+<span class="muted">UP / YES</span>
+<b id="up">—</b>
+<span class="muted">live price</span>
+</div>
+
+<div class="stat">
+<span class="muted">DOWN / NO</span>
+<b id="down">—</b>
+<span class="muted">live price</span>
+</div>
+
+</div>
+
+</section>
+
+
+<section class="card">
+
+<div class="label">Model decision</div>
+
+<div class="decision" id="decision">WAIT</div>
+
+<div class="row">
+<span class="muted">Confidence</span>
+<b id="confidence">—</b>
+</div>
+
+<div class="bar" style="margin-top:8px">
+<div class="fill" id="fill"></div>
+</div>
+
+<div class="row" style="margin-top:12px">
+<span class="muted">Max buy price</span>
+<b id="max">—</b>
+</div>
+
+</section>
+
+
+<section class="card">
+
+<div class="label">Live BTC price</div>
+
+<canvas id="chart" class="chart"></canvas>
+
+<div class="row">
+<span class="muted">Updated</span>
+<span id="updated">—</span>
+</div>
+
+</section>
+
+
+<section class="card">
+
+<div class="label">Live market odds</div>
+
+<div class="odds" style="margin-top:10px">
+
+<div class="odd">
+<span class="muted">UP / YES</span>
+<br>
+<b id="up2">—</b>
+</div>
+
+<div class="odd">
+<span class="muted">DOWN / NO</span>
+<br>
+<b id="down2">—</b>
+</div>
+
+</div>
+
+</section>
+
+
+<section class="card">
+
+<div class="label">Connection</div>
+
+<p id="connection" class="muted">
+Connecting to live BTC and Kalshi data...
+</p>
+
+<button onclick="refresh()">Refresh now</button>
+
+</section>
+
+</div>
+
+
+<div class="footer">
+Market-data dashboard only. No trade is placed automatically.
+Kalshi private API credentials are not stored in this browser.
+Always verify the contract, strike, price and settlement rules before trading.
+</div>
+
+</div>
+
+
+<script>
+
+const prices=[];
+
+const KALSHI_API=
+"https://external-api.kalshi.com/trade-api/v2";
+
+
+async function getBTC(){
+
+const response=await fetch(
+"https://api.coinbase.com/v2/prices/BTC-USD/spot",
+{cache:"no-store"}
+);
+
+if(!response.ok)
+throw new Error("BTC feed unavailable");
+
+const data=await response.json();
+
+const price=Number(data.data.amount);
+
+prices.push(price);
+
+if(prices.length>100)
+prices.shift();
+
+document.getElementById("btc").textContent=
+"$"+price.toLocaleString(
+undefined,
+{maximumFractionDigits:2}
+);
+
+return price;
+
+}
+
+
+async function getKalshi(){
+
+const url=
+KALSHI_API+
+"/markets?series_ticker=KXBTC15M&status=open&limit=100";
+
+const response=await fetch(
+url,
+{cache:"no-store"}
+);
+
+if(!response.ok)
+throw new Error(
+"Kalshi market feed unavailable"
+);
+
+const data=await response.json();
+
+const markets=data.markets || [];
+
+if(!markets.length)
+throw new Error(
+"No open BTC 15-minute Kalshi market found"
+);
+
+
+/*
+ Find the currently active/nearest contract.
+*/
+
+const now=Date.now();
+
+markets.sort(
+(a,b)=>{
+
+const aTime=
+new Date(
+a.close_time ||
+a.expiration_time ||
+a.end_time
+).getTime();
+
+const bTime=
+new Date(
+b.close_time ||
+b.expiration_time ||
+b.end_time
+).getTime();
+
+return Math.abs(aTime-now)-
+Math.abs(bTime-now);
+
+}
+);
+
+
+const market=markets[0];
+
+
+/*
+ Kalshi prices can be returned as dollars.
+*/
+
+let yesAsk=
+Number(market.yes_ask_dollars);
+
+let noAsk=
+Number(market.no_ask_dollars);
+
+
+/*
+ Some API responses use cents instead.
+*/
+
+if(
+!Number.isFinite(yesAsk) &&
+Number.isFinite(Number(market.yes_ask))
+){
+yesAsk=
+Number(market.yes_ask)/100;
+}
+
+if(
+!Number.isFinite(noAsk) &&
+Number.isFinite(Number(market.no_ask))
+){
+noAsk=
+Number(market.no_ask)/100;
+}
+
+
+/*
+ Contract strike.
+*/
+
+let strike=
+Number(
+market.floor_strike ??
+market.strike_price ??
+market.functional_strike ??
+market.cap_strike
+);
+
+
+document.getElementById("contract").textContent=
+market.title ||
+market.subtitle ||
+market.ticker ||
+"KXBTC15M";
+
+
+if(Number.isFinite(strike)){
+
+document.getElementById("target").textContent=
+"$"+
+strike.toLocaleString(
+undefined,
+{maximumFractionDigits:2}
+);
+
+}
+
+
+/*
+ Display live odds.
+*/
+
+if(Number.isFinite(yesAsk)){
+
+const cents=
+Math.round(yesAsk*100);
+
+document.getElementById("up").textContent=
+cents+"¢";
+
+document.getElementById("up2").textContent=
+cents+"%";
+
+}
+
+
+if(Number.isFinite(noAsk)){
+
+const cents=
+Math.round(noAsk*100);
+
+document.getElementById("down").textContent=
+cents+"¢";
+
+document.getElementById("down2").textContent=
+cents+"%";
+
+}
+
+
+updateDecision(
+yesAsk,
+noAsk,
+strike
+);
+
+document.getElementById("status").textContent=
+"BTC + KALSHI LIVE";
+
+document.getElementById("status").style.color=
+"#45e09a";
+
+document.getElementById("connection").textContent=
+"Live BTC and Kalshi market data connected.";
+
+document.getElementById("updated").textContent=
+new Date().toLocaleTimeString();
+
+}
+
+
+function updateDecision(
+up,
+down,
+strike
+){
+
+const btc=
+prices[prices.length-1];
+
+let decision="WAIT";
+
+let confidence=50;
+
+let maxPrice=null;
+
+
+if(
+Number.isFinite(btc) &&
+Number.isFinite(strike) &&
+Number.isFinite(up) &&
+Number.isFinite(down)
+){
+
+const distance=
+(btc-strike)/strike;
+
+
+/*
+ Conservative signal.
+
+ BTC must be at least 0.10%
+ above/below strike.
+*/
+
+if(
+distance>0.001 &&
+up<0.75
+){
+
+decision="BUY UP";
+
+confidence=
+Math.min(
+95,
+60+
+Math.abs(distance)*10000
+);
+
+maxPrice=
+Math.min(
+0.75,
+up+0.03
+);
+
+}
+
+else if(
+distance<-0.001 &&
+down<0.75
+){
+
+decision="BUY DOWN";
+
+confidence=
+Math.min(
+95,
+60+
+Math.abs(distance)*10000
+);
+
+maxPrice=
+Math.min(
+0.75,
+down+0.03
+);
+
+}
+
+}
+
+
+document.getElementById(
+"decision"
+).textContent=
+decision;
+
+
+document.getElementById(
+"confidence"
+).textContent=
+Math.round(confidence)+"%";
+
+
+document.getElementById(
+"fill"
+).style.width=
+Math.min(100,confidence)+"%";
+
+
+document.getElementById(
+"max"
+).textContent=
+maxPrice!==null
+?
+Math.round(maxPrice*100)+"¢"
+:
+"—";
+
+}
+
+
+async function refresh(){
+
+try{
+
+await getBTC();
+
+await getKalshi();
+
+draw();
+
+}
+
+catch(error){
+
+console.error(error);
+
+document.getElementById(
+"status"
+).textContent=
+"FEED ERROR";
+
+document.getElementById(
+"status"
+).style.color=
+"#ff6677";
+
+document.getElementById(
+"connection"
+).textContent=
+error.message+
+" — tap Refresh to retry.";
+
+}
+
+}
+
+
+function draw(){
+
+const canvas=
+document.getElementById("chart");
+
+const ctx=
+canvas.getContext("2d");
+
+const d=
+window.devicePixelRatio || 1;
+
+const width=
+canvas.clientWidth;
+
+const height=
+canvas.clientHeight;
+
+canvas.width=
+width*d;
+
+canvas.height=
+height*d;
+
+ctx.scale(d,d);
+
+ctx.clearRect(
+0,
+0,
+width,
+height
+);
+
+if(prices.length<2)
+return;
+
+
+const min=
+Math.min(...prices);
+
+const max=
+Math.max(...prices);
+
+const range=
+(max-min)||1;
+
+
+ctx.beginPath();
+
+prices.forEach(
+(value,index)=>{
+
+const x=
+index*
+(width/(prices.length-1));
+
+const y=
+height-
+8-
+((value-min)/range)*
+(height-18);
+
+if(index===0)
+ctx.moveTo(x,y);
+else
+ctx.lineTo(x,y);
+
+}
+);
+
+ctx.strokeStyle=
+"#42dd91";
+
+ctx.lineWidth=2;
+
+ctx.stroke();
+
+}
+
+
+function tick(){
+
+const now=
+new Date();
+
+const seconds=
+15*60-
+(
+Math.floor(
+now.getTime()/1000
+)%
+(15*60)
+);
+
+const minutes=
+Math.floor(seconds/60);
+
+const secs=
+seconds%60;
+
+document.getElementById(
+"clock"
+).textContent=
+String(minutes).padStart(2,"0")+
+":"+
+String(secs).padStart(2,"0");
+
+}
+
+
+refresh();
+
+tick();
+
+setInterval(
+refresh,
+5000
+);
+
+setInterval(
+tick,
+1000
+);
+
+window.addEventListener(
+"resize",
+draw
+);
+
+</script>
+
+</body>
+</html>
