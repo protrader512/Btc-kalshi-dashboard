@@ -9,10 +9,11 @@
 body{margin:0;background:#070b12;color:#e8eef7;font:14px system-ui,-apple-system,Segoe UI,sans-serif}
 .wrap{max-width:1100px;margin:auto;padding:18px}
 .top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
-h1{font-size:20px;margin:0}.sub{color:#7f8da3;font-size:12px;margin-top:4px}
+h1{font-size:20px;margin:0}
+.sub{color:#7f8da3;font-size:12px;margin-top:4px}
 .pill{border:1px solid #1f9d63;color:#45e09a;border-radius:20px;padding:7px 11px;font-size:11px}
 .grid{display:grid;grid-template-columns:1.4fr 1fr;gap:14px}
-.card{background:#0d131d;border:1px solid #1b2635;border-radius:14px;padding:16px;box-shadow:0 8px 30px #0004}
+.card{background:#0d131d;border:1px solid #1b2635;border-radius:14px;padding:16px}
 .hero{grid-column:1/-1}
 .label{color:#8290a5;font-size:11px;text-transform:uppercase;letter-spacing:.08em}
 .muted{color:#8290a5}
@@ -27,54 +28,295 @@ h1{font-size:20px;margin:0}.sub{color:#7f8da3;font-size:12px;margin-top:4px}
 .odd{padding:14px;border-radius:11px;background:#111a26}
 .odd b{font-size:25px}
 .chart{height:180px;width:100%;display:block}
-button{background:#152234;color:#dce8f6;border:1px solid #26364b;border-radius:8px;padding:8px 11px;cursor:pointer}
+button{background:#152234;color:#dce8f6;border:1px solid #26364b;border-radius:8px;padding:8px 11px}
 .footer{margin-top:14px;color:#6f7d91;font-size:10px;line-height:1.5}
-@media(max-width:700px){
-.grid{grid-template-columns:1fr}
-.stats{grid-template-columns:1fr 1fr}
-.hero{grid-column:auto}
-}
+@media(max-width:700px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}.hero{grid-column:auto}}
 </style>
 </head>
-
 <body>
-
 <div class="wrap">
-
 <div class="top">
 <div>
 <h1>LIVE Kalshi + BTC Decision Engine</h1>
 <div class="sub">BTC 15-minute Up/Down dashboard</div>
 </div>
-<div class="pill" id="status">STARTING…</div>
+<div class="pill" id="status">STARTING...</div>
 </div>
 
 <div class="grid">
-
 <section class="card hero">
-
 <div class="row">
 <div>
 <div class="label">Current contract</div>
-<b id="contract">Finding KXBTC15M…</b>
+<b id="contract">Finding KXBTC15M...</b>
 </div>
-
 <div class="muted" id="clock">--:--</div>
 </div>
 
 <div class="stats">
+<div class="stat"><span class="muted">BTC</span><b id="btc">—</b><span class="muted">live spot</span></div>
+<div class="stat"><span class="muted">Target</span><b id="target">—</b><span class="muted">Kalshi strike</span></div>
+<div class="stat"><span class="muted">UP / YES</span><b id="up">—</b><span class="muted">live ask</span></div>
+<div class="stat"><span class="muted">DOWN / NO</span><b id="down">—</b><span class="muted">live ask</span></div>
+</div>
+</section>
 
-<div class="stat">
-<span class="muted">BTC</span>
-<b id="btc">—</b>
-<span class="muted">live spot</span>
+<section class="card">
+<div class="label">Model decision</div>
+<div class="decision" id="decision">WAIT</div>
+<div class="row"><span class="muted">Confidence</span><b id="confidence">—</b></div>
+<div class="bar" style="margin-top:8px"><div class="fill" id="fill"></div></div>
+<div class="row" style="margin-top:12px"><span class="muted">Max buy price</span><b id="max">—</b></div>
+</section>
+
+<section class="card">
+<div class="label">Live BTC price</div>
+<canvas id="chart" class="chart"></canvas>
+<div class="row"><span class="muted">Updated</span><span id="updated">—</span></div>
+</section>
+
+<section class="card">
+<div class="label">Live market odds</div>
+<div class="odds" style="margin-top:10px">
+<div class="odd"><span class="muted">UP / YES</span><br><b id="up2">—</b></div>
+<div class="odd"><span class="muted">DOWN / NO</span><br><b id="down2">—</b></div>
+</div>
+</section>
+
+<section class="card">
+<div class="label">Connection</div>
+<p id="connection" class="muted">JavaScript starting...</p>
+<button onclick="refresh()">Refresh now</button>
+</section>
 </div>
 
-<div class="stat">
-<span class="muted">Target</span>
-<b id="target">—</b>
-<span class="muted">Kalshi strike</span>
+<div class="footer">Read-only market dashboard. No order is placed and no private Kalshi key is stored here.</div>
 </div>
 
-<div class="stat">
-<span class="muted">UP /
+<script>
+(function(){
+"use strict";
+
+var prices=[];
+var KALSHI="https://external-api.kalshi.com/trade-api/v2/markets";
+
+function el(id){
+return document.getElementById(id);
+}
+
+function setStatus(text,color){
+el("status").textContent=text;
+el("status").style.color=color||"#45e09a";
+}
+
+function tick(){
+var now=new Date();
+var seconds=900-(Math.floor(now.getTime()/1000)%900);
+var m=Math.floor(seconds/60);
+var s=seconds%60;
+el("clock").textContent=
+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");
+}
+
+function showError(message){
+setStatus("FEED ERROR","#ff6677");
+el("connection").textContent=message;
+}
+
+function getBTC(){
+return fetch(
+"https://api.coinbase.com/v2/prices/BTC-USD/spot?cb="+Date.now(),
+{cache:"no-store"}
+)
+.then(function(r){
+if(!r.ok)throw new Error("BTC feed HTTP "+r.status);
+return r.json();
+})
+.then(function(j){
+var p=Number(j.data.amount);
+if(!isFinite(p))throw new Error("Invalid BTC price");
+prices.push(p);
+if(prices.length>120)prices.shift();
+el("btc").textContent=
+"$"+p.toLocaleString(undefined,{maximumFractionDigits:2});
+return p;
+});
+}
+
+function chooseMarket(markets){
+var now=Date.now();
+
+var valid=markets.filter(function(m){
+var ticker=String(m.ticker||"");
+var close=new Date(
+m.close_time||m.latest_expiration_time||""
+).getTime();
+
+return ticker.indexOf("KXBTC15M")===0 &&
+(m.status==="open"||m.status==="active") &&
+isFinite(close)&&close>now;
+});
+
+valid.sort(function(a,b){
+return new Date(a.close_time).getTime()-
+new Date(b.close_time).getTime();
+});
+
+return valid.length?valid[0]:null;
+}
+
+function getKalshi(){
+var url=KALSHI+
+"?series_ticker=KXBTC15M&status=open&limit=100&cb="+Date.now();
+
+return fetch(url,{cache:"no-store"})
+.then(function(r){
+if(!r.ok)throw new Error("Kalshi feed HTTP "+r.status);
+return r.json();
+})
+.then(function(j){
+
+var market=chooseMarket(j.markets||[]);
+
+if(!market){
+throw new Error("No active KXBTC15M contract returned by Kalshi");
+}
+
+var up=Number(market.yes_ask_dollars);
+var down=Number(market.no_ask_dollars);
+var yesBid=Number(market.yes_bid_dollars);
+var noBid=Number(market.no_bid_dollars);
+
+if(!isFinite(up)&&isFinite(noBid))up=1-noBid;
+if(!isFinite(down)&&isFinite(yesBid))down=1-yesBid;
+
+var strike=Number(
+market.floor_strike!==undefined?
+market.floor_strike:
+market.cap_strike!==undefined?
+market.cap_strike:
+market.functional_strike
+);
+
+el("contract").textContent=
+market.title||market.ticker;
+
+if(isFinite(strike)){
+el("target").textContent=
+"$"+strike.toLocaleString(undefined,{maximumFractionDigits:2});
+}
+
+if(isFinite(up)){
+el("up").textContent=Math.round(up*100)+"¢";
+el("up2").textContent=Math.round(up*100)+"%";
+}
+
+if(isFinite(down)){
+el("down").textContent=Math.round(down*100)+"¢";
+el("down2").textContent=Math.round(down*100)+"%";
+}
+
+decision(up,down,strike);
+
+setStatus("BTC + KALSHI LIVE","#45e09a");
+el("connection").textContent=
+"Live BTC + KXBTC15M market data connected.";
+el("updated").textContent=
+new Date().toLocaleTimeString();
+});
+}
+
+function decision(up,down,strike){
+var btc=prices.length?prices[prices.length-1]:NaN;
+var d="WAIT";
+var confidence=50;
+var max=null;
+
+if(isFinite(btc)&&isFinite(strike)&&isFinite(up)&&isFinite(down)){
+
+var distance=(btc-strike)/strike;
+
+if(distance>0.001&&up<0.75){
+d="BUY UP";
+confidence=Math.min(95,60+Math.abs(distance)*10000);
+max=Math.min(0.75,up+0.03);
+}
+else if(distance<-0.001&&down<0.75){
+d="BUY DOWN";
+confidence=Math.min(95,60+Math.abs(distance)*10000);
+max=Math.min(0.75,down+0.03);
+}
+}
+
+el("decision").textContent=d;
+el("confidence").textContent=Math.round(confidence)+"%";
+el("fill").style.width=Math.round(confidence)+"%";
+el("max").textContent=max===null?"—":Math.round(max*100)+"¢";
+}
+
+function refresh(){
+Promise.all([getBTC(),getKalshi()])
+.then(function(){draw();})
+.catch(function(e){
+console.error(e);
+showError(e.message||"Live feed failed");
+draw();
+});
+}
+
+function draw(){
+var c=el("chart");
+var ctx=c.getContext("2d");
+var d=window.devicePixelRatio||1;
+var w=c.clientWidth||300;
+var h=c.clientHeight||180;
+
+c.width=w*d;
+c.height=h*d;
+
+ctx.setTransform(d,0,0,d,0,0);
+ctx.clearRect(0,0,w,h);
+
+if(prices.length<2)return;
+
+var mn=Math.min.apply(null,prices);
+var mx=Math.max.apply(null,prices);
+var range=(mx-mn)||1;
+
+ctx.beginPath();
+
+prices.forEach(function(v,i){
+var x=i*w/(prices.length-1);
+var y=h-8-((v-mn)/range)*(h-18);
+
+if(i===0)ctx.moveTo(x,y);
+else ctx.lineTo(x,y);
+});
+
+ctx.strokeStyle="#42dd91";
+ctx.lineWidth=2;
+ctx.stroke();
+}
+
+window.refresh=refresh;
+
+window.onerror=function(message,source,line){
+showError("JavaScript error: "+message+" (line "+line+")");
+};
+
+setStatus("JAVASCRIPT LIVE","#45e09a");
+el("connection").textContent=
+"JavaScript is running; connecting to live feeds...";
+
+tick();
+refresh();
+
+setInterval(tick,1000);
+setInterval(refresh,5000);
+window.addEventListener("resize",draw);
+
+})();
+</script>
+
+</body>
+</html>
